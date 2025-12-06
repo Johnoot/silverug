@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8">
+<title>ULTRAKILL Fullscreen</title>
+<base href="https://cdn.jsdelivr.net/gh/genizy/web-port@master/ultrakill/">
+
+<style>
+html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:black; }
+#loading-text { color:white; font-family:cursive; font-size:48px; text-align:center; position:absolute; top:40px; left:50%; transform:translateX(-50%);}
+#unity-canvas { width:100%; height:100%; position:absolute; top:0; left:0; }
+#unblocked-text { position:absolute; top:10px; left:10px; color:#4ae24d; font-size:20px; z-index:2002; }
+</style>
+</head>
+<body>
+<div id="loading-text">LOADING...</div>
+<p id="unblocked-text">G+</p>
+<canvas id="unity-canvas" tabindex="-1"></canvas>
+
+<script src="Build/ultrakill.loader.js"></script>
+<script>
+function startUnity() {
+    const canvas=document.getElementById("unity-canvas");
+
+    function mergeFiles(parts){
+        return new Promise((resolve,reject)=>{
+            let buffers=[];
+            function getPart(i){
+                if(i>=parts.length){ resolve(URL.createObjectURL(new Blob(buffers))); return; }
+                fetch(parts[i]).then(r=>r.arrayBuffer()).then(buf=>{buffers.push(buf); getPart(i+1);}).catch(reject);
+            }
+            getPart(0);
+        });
+    }
+
+    function getParts(base,from,to){ let arr=[]; for(let i=from;i<=to;i++) arr.push(base+".part"+i); return arr; }
+
+    Promise.all([
+        mergeFiles(getParts("Build/ultrakill.data.unityweb",1,4)),
+        mergeFiles(getParts("Build/ultrakill.wasm.unityweb",1,2))
+    ]).then(([dataUrl,wasmUrl])=>{
+        createUnityInstance(canvas,{
+            dataUrl:dataUrl,
+            frameworkUrl:"Build/ultrakill.framework.js.unityweb",
+            codeUrl:wasmUrl,
+            streamingAssetsUrl:"StreamingAssets",
+            companyName:"Hakita and Cake Logic",
+            productName:"ULTRAKILL",
+            productVersion:"1.4"
+        }).then(()=>{document.getElementById("loading-text").style.display="none";});
+    });
+}
+
+window.addEventListener('load',startUnity);
+</script>
+</body>
+</html>
